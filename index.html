@@ -266,6 +266,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       <span class="chip" onclick="useChip('c',this)">Podemos hacer un acuerdo de pago</span>
       <span class="chip" onclick="useChip('c',this)">Este saldo ya genera intereses</span>
       <span class="chip" onclick="useChip('c',this)">¿Qué le impide pagar hoy?</span>
+      <span class="chip" onclick="useChip('c',this)">Déjeme validar su saldo en el sistema</span>
+      <span class="chip" onclick="useChip('c',this)">¿Tiene el comprobante de ese abono?</span>
       <span class="chip" onclick="useChip('c',this)">Avon puede absorber parte del saldo</span>
       <span class="chip" onclick="useChip('c',this)">Esto puede pasar a acciones legales</span>
     </div>
@@ -451,6 +453,7 @@ const ST = {
 
 let espVoice = null;
 let voicesReady = false;
+let voiceUnlocked = false;
 
 /* ── Voces garantizadas ── */
 function loadVoices(){
@@ -500,6 +503,7 @@ function setStatus(pfx,t){document.getElementById(pfx+'-status').textContent=t;}
    INICIAR LLAMADA/REUNIÓN
 ═══════════════════════════════════════ */
 async function startCall(pfx){
+  unlockVoice();
   if(pfx==='c'){
     const s=ST.c;
     s.nom=document.getElementById('c-nom').value.trim()||'María López';
@@ -578,7 +582,11 @@ function sysPromptCobros(){
     promise:'La semana pasada prometiste pagar y no lo hiciste.',
     prejuridica:'Último aviso antes de acción legal. Es muy serio.'
   };
-  return `${rT[s.rep]}\nSaldo en mora: Q${s.sal.toLocaleString()}. Días vencido: ${s.dia}.\n${scT[s.sc]}\nREGLAS: Responde SOLO como la representante. Lenguaje coloquial de ${s.pais}. Máximo 2 oraciones cortas. Reacciona al tono del gestor. No salgas del personaje.`;
+  return `${rT[s.rep]}\nSaldo en mora: Q${s.sal.toLocaleString()}. Días vencido: ${s.dia}.\n${scT[s.sc]}
+
+OBJECIÓN DE MONTO (úsala al menos una vez durante la llamada, en un momento natural): En algún momento cuestiona el monto que te cobran. Di algo como que tú tienes anotado un saldo diferente, que ya hiciste un abono que no te reconocen, o que el monto que te dicen no coincide con lo que esperabas. Por ejemplo: "pero si yo ya aboné Q500 la semana pasada" o "a mí me sale un saldo distinto, no me cuadra ese monto". Mantén esta objeción hasta que el gestor: (a) te pida los datos del abono o comprobante, (b) te explique con claridad cómo se compone el saldo, o (c) se comprometa a validar/revisar el monto y darte una respuesta. Si el gestor ignora tu objeción o no la valida, insiste y muéstrate más molesta o desconfiada.
+
+REGLAS: Responde SOLO como la representante. Lenguaje coloquial de ${s.pais}. Máximo 2 oraciones cortas. Reacciona al tono del gestor. No salgas del personaje.`;
 }
 
 function sysPromptGZ(){
@@ -653,13 +661,33 @@ function speakText(pfx,text){
   const s=ST[pfx];s.speaking=true;
   document.getElementById(pfx+'-av-ring').classList.add('pulse');
   setStatus(pfx,'🔊 Hablando...');
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.lang='es-MX';utt.rate=0.91;utt.pitch=pfx==='gz'?1.0:1.1;utt.volume=1;
-  if(espVoice) utt.voice=espVoice;
-  const ka=setInterval(()=>{if(!speechSynthesis.speaking){clearInterval(ka);return;}speechSynthesis.pause();speechSynthesis.resume();},8000);
-  utt.onend=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,s.mode==='voice'?'🎤 Tu turno — presiona el micrófono':'Tu turno — escribe');};
-  utt.onerror=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,'(Respuesta en pantalla)');};
-  speechSynthesis.speak(utt);
+
+  const speakNow=()=>{
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.lang='es-MX';utt.rate=0.91;utt.pitch=pfx==='gz'?1.0:1.1;utt.volume=1;
+    if(espVoice) utt.voice=espVoice;
+    const ka=setInterval(()=>{if(!speechSynthesis.speaking){clearInterval(ka);return;}speechSynthesis.pause();speechSynthesis.resume();},8000);
+    utt.onend=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,s.mode==='voice'?'🎤 Tu turno — presiona el micrófono':'Tu turno — escribe');};
+    utt.onerror=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,s.mode==='voice'?'🎤 Tu turno — presiona el micrófono':'Tu turno — escribe');};
+    speechSynthesis.speak(utt);
+  };
+
+  speakNow();
+  setTimeout(()=>{
+    if(s.speaking && !speechSynthesis.speaking && !speechSynthesis.pending){
+      speechSynthesis.resume();
+      speakNow();
+    }
+  },250);
+}
+
+function unlockVoice(){
+  if(!window.speechSynthesis || voiceUnlocked) return;
+  const u=new SpeechSynthesisUtterance('');
+  u.volume=0;
+  speechSynthesis.speak(u);
+  speechSynthesis.resume();
+  voiceUnlocked=true;
 }
 
 /* ═══════════════════════════════════════
@@ -676,6 +704,7 @@ function setupRecog(pfx){
   s.recog.onend=()=>{if(s.recognizing)stopMic(pfx);};
 }
 function toggleMic(pfx){
+  unlockVoice();
   const s=ST[pfx];
   if(s.busy||s.speaking){setStatus(pfx,'⏳ Espera que termine de hablar');return;}
   if(s.recognizing){if(s.recog)s.recog.stop();stopMic(pfx);return;}
@@ -755,7 +784,7 @@ async function evaluate(pfx){
     : `Tipo reunión: ${s.tipo} | Perfil GZ: ${s.perf} | Rol evaluado: ${s.rol} | CXC: Q${s.cxc} | Mora: ${s.mora}% | Meta: ${s.meta}%`;
 
   const criteriosCobro=[
-    {n:'Apertura de llamada'},{n:'Manejo de objeciones'},{n:'Solución de pago ofrecida'},{n:'Cierre con compromiso'},{n:'Tono y empatía'}
+    {n:'Apertura de llamada'},{n:'Manejo de objeciones'},{n:'Validación del saldo cuestionado'},{n:'Solución de pago ofrecida'},{n:'Cierre con compromiso'},{n:'Tono y empatía'}
   ];
   const criteriosGZ=[
     {n:'Claridad en los datos presentados'},{n:'Exigencia de compromisos concretos'},{n:'Manejo de justificaciones'},{n:'Establecimiento de fechas y metas'},{n:'Tono profesional y asertivo'}
