@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador Avon CARD · GrupoPDC</title>
+<style>
+:root {
+  --bg:#0F0E1A; --bg2:#1A1830; --surface:#1E1B36; --surface2:#28244A;
+  --border:#2E2A52; --text:#E8E6F0; --muted:#9B97B8;
+  --avon:#E91E63; --avon2:#C2185B; --pdc:#0A2472; --gold:#F5A623;
+  --green:#1D9E75; --red:#E24B4A; --amber:#BA7517; --blue:#378ADD;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── HEADER ── */
+.header{
+  background:linear-gradient(135deg,var(--avon) 0%,var(--pdc) 100%);
+  padding:22px 20px 18px;text-align:center;position:relative;overflow:hidden;
+}
+.header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(255,255,255,.07) 0%,transparent 60%)}
+.header h1{font-size:1.45rem;font-weight:800;position:relative;z-index:1;letter-spacing:-.3px}
+.header p{font-size:.82rem;opacity:.8;margin-top:4px;position:relative;z-index:1}
+
+/* ── MODULE SELECTOR ── */
+.mod-selector{display:flex;gap:0;background:var(--surface);border-bottom:1px solid var(--border)}
+.mod-btn{
+  flex:1;padding:14px 10px;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;background:transparent;color:var(--muted);
+  border-bottom:3px solid transparent;transition:all .2s;letter-spacing:.2px;
+}
+.mod-btn:hover{color:var(--text);background:var(--surface2)}
+.mod-btn.active{color:var(--avon);border-bottom-color:var(--avon);background:rgba(233,30,99,.06)}
+.mod-icon{display:block;font-size:20px;margin-bottom:3px}
+
+/* ── CONTAINER ── */
+.container{max-width:680px;margin:0 auto;padding:18px 16px}
+.module{display:none}.module.active{display:block}
+.screen{display:none}.screen.active{display:block}
+
+/* ── LABELS ── */
+.slbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:16px}
+.slbl:first-child{margin-top:0}
+
+/* ── OPT ── */
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.opt-row{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.opt{padding:11px 13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;flex:1;min-width:110px}
+.opt:hover{border-color:var(--avon);background:var(--surface2)}
+.opt.sel{border:2px solid var(--avon);background:rgba(233,30,99,.08)}
+.opt-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.opt-desc{font-size:11px;color:var(--muted);line-height:1.3}
+
+/* ── FIELDS ── */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.field label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600}
+.field input,.field select{width:100%;padding:9px 11px;font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--avon)}
+.field select option{background:var(--surface2);color:var(--text)}
+
+/* ── BUTTONS ── */
+.btn-main{width:100%;padding:13px;background:linear-gradient(135deg,var(--avon),var(--avon2));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:14px}
+.btn-main:hover{opacity:.9}
+.btn-end{width:100%;padding:11px;background:transparent;color:#F09595;border:1px solid rgba(224,75,74,.4);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;margin-top:8px}
+.btn-end:hover{background:rgba(224,75,74,.1)}
+.btn-sec{width:100%;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;font-size:13px;cursor:pointer;margin-top:8px;transition:all .15s}
+.btn-sec:hover{border-color:var(--avon);color:var(--avon)}
+
+/* ── CALL TOP ── */
+.call-top{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center;margin-bottom:14px}
+.av-wrap{position:relative;width:72px;height:72px;margin:0 auto 10px}
+.av-circle{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(233,30,99,.25),rgba(10,36,114,.25));border:2px solid var(--avon);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--avon);position:relative;z-index:1}
+.av-ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--avon);opacity:0}
+.av-ring.pulse{animation:rp 1.1s ease-out infinite}
+@keyframes rp{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}
+.call-name{font-size:17px;font-weight:800;color:var(--text)}
+.call-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.call-timer{font-size:26px;font-weight:800;color:var(--avon);margin:7px 0 3px;letter-spacing:1px}
+.call-status{font-size:12px;color:var(--muted);min-height:17px}
+.call-badges{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.cbadge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.b-warn{background:rgba(186,117,23,.2);color:#F5A623;border:1px solid rgba(186,117,23,.3)}
+.b-danger{background:rgba(226,75,74,.2);color:#F09595;border:1px solid rgba(226,75,74,.3)}
+.b-ok{background:rgba(29,158,117,.2);color:#5DCAA5;border:1px solid rgba(29,158,117,.3)}
+.b-blue{background:rgba(55,138,221,.2);color:#85B7EB;border:1px solid rgba(55,138,221,.3)}
+
+/* ── TRANSCRIPT ── */
+.transcript-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.msgs{min-height:220px;max-height:320px;overflow-y:auto;padding:14px;background:var(--bg2);display:flex;flex-direction:column;gap:10px}
+.msgs::-webkit-scrollbar{width:4px}
+.msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.msg.g{flex-direction:row-reverse}
+.mav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.mav.r{background:rgba(233,30,99,.2);color:var(--avon);border:1px solid rgba(233,30,99,.3)}
+.mav.g{background:rgba(10,36,114,.4);color:#7DA8F5;border:1px solid rgba(10,36,114,.5)}
+.mav.gz{background:rgba(245,166,35,.2);color:#F5A623;border:1px solid rgba(245,166,35,.3)}
+.mbub{max-width:80%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55}
+.msg.r .mbub,.msg.gz .mbub{background:var(--surface2);border:1px solid var(--border);border-top-left-radius:3px;color:var(--text)}
+.msg.g .mbub{background:var(--avon);color:#fff;border-top-right-radius:3px}
+.mlbl{font-size:10px;color:var(--muted);margin-top:3px}
+.msg.g .mlbl{text-align:right}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);margin:0 2px;animation:bl 1s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+/* ── INPUT BAR ── */
+.input-bar{display:flex;gap:8px;padding:10px 12px;background:var(--surface);border-top:1px solid var(--border);align-items:center}
+.input-bar input{flex:1;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);outline:none;transition:border-color .15s}
+.input-bar input:focus{border-color:var(--avon)}
+.btn-mic{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--surface2);color:var(--muted);transition:all .15s}
+.btn-mic:hover{border-color:var(--avon);color:var(--avon)}
+.btn-mic.rec{background:var(--avon);color:#fff;border:none;animation:mp .7s ease-in-out infinite alternate}
+@keyframes mp{from{transform:scale(1)}to{transform:scale(1.12)}}
+.btn-go{padding:9px 14px;background:var(--avon);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;flex-shrink:0}
+.btn-go:hover{opacity:.85}
+
+/* ── CHIPS ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-size:11px;padding:5px 11px;background:var(--surface);border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--muted);transition:all .15s}
+.chip:hover{border-color:var(--avon);color:var(--avon);background:rgba(233,30,99,.06)}
+
+/* ── VOICE BADGE ── */
+.voice-on{display:none;align-items:center;gap:6px;font-size:11px;color:#5DCAA5;margin-bottom:8px;background:rgba(29,158,117,.1);border:1px solid rgba(29,158,117,.25);border-radius:10px;padding:7px 12px}
+.voice-on.show{display:flex}
+.vdot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:vp .8s ease-in-out infinite alternate}
+@keyframes vp{from{opacity:1}to{opacity:.3}}
+
+/* ── EVAL ── */
+.score-ring{width:70px;height:70px;border-radius:50%;border:3px solid var(--avon);display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;background:rgba(233,30,99,.08)}
+.mets{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.met{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.met .v{font-size:18px;font-weight:800;color:var(--text)}
+.met .l{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.ecard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.ecard-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.crow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.crow:last-child{border:none}
+.bar{width:72px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+
+/* ── GZ: contexto data cards ── */
+.gz-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.gz-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.gz-kpi .kv{font-size:20px;font-weight:800;color:var(--gold);margin-bottom:2px}
+.gz-kpi .kl{font-size:11px;color:var(--muted);font-weight:600}
+.gz-kpi .ksub{font-size:11px;color:var(--muted);margin-top:2px}
+
+@media(max-width:520px){
+  .opt-grid{grid-template-columns:1fr}
+  .field-row{grid-template-columns:1fr}
+  .header h1{font-size:1.2rem}
+  .mets{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📞 Simulador Avon CARD</h1>
+  <p>Práctica de gestión · GrupoPDC460</p>
+</div>
+
+<!-- MODULE TABS -->
+<div class="mod-selector">
+  <button class="mod-btn active" onclick="switchMod('cobros')" id="tab-cobros">
+    <span class="mod-icon">🎯</span>Cobros
+  </button>
+  <button class="mod-btn" onclick="switchMod('gz')" id="tab-gz">
+    <span class="mod-icon">👩‍💼</span>Gerentes de Zona
+  </button>
+</div>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════════
+     MÓDULO 1: SIMULADOR DE COBROS
+══════════════════════════════════════════ -->
+<div id="mod-cobros" class="module active">
+
+  <!-- SETUP COBROS -->
+  <div id="c-setup" class="screen active">
+    <p class="slbl">Escenario de cobro</p>
+    <div class="opt-grid" id="cg-sc">
+      <div class="opt sel" onclick="pick('cg-sc',this,'early')">
+        <div class="opt-title">⏰ Mora temprana</div>
+        <div class="opt-desc">PD1–PD3 · 8–22 días · Primera gestión</div>
+      </div>
+      <div class="opt" onclick="pick('cg-sc',this,'late')">
+        <div class="opt-title">⚠️ Mora avanzada</div>
+        <div class="opt-desc">PD4–PD6 · 23–42 días · Intentos previos</div>
+      </div>
+      <div class="opt" onclick="pick('cg-sc',this,'promise')">
+        <div class="opt-title">📅 Promesa rota</div>
+        <div class="opt-desc">Prometió pagar la semana pasada y no lo hizo</div>
+      </div>
+      <div class="opt" onclick="pick('cg-sc',this,'prejuridica')">
+        <div class="opt-title">⚖️ Prejurídica</div>
+        <div class="opt-desc">PD7 · Último aviso antes de acción legal</div>
+      </div>
+    </div>
+
+    <p class="slbl">Tipo de representante</p>
+    <div class="opt-row" id="cg-rep">
+      <div class="opt sel" onclick="pick('cg-rep',this,'evasiva')">
+        <div class="opt-title">Evasiva</div><div class="opt-desc">Pone excusas, evita compromisos</div>
+      </div>
+      <div class="opt" onclick="pick('cg-rep',this,'agresiva')">
+        <div class="opt-title">Agresiva</div><div class="opt-desc">Se molesta, cuestiona el cobro</div>
+      </div>
+      <div class="opt" onclick="pick('cg-rep',this,'cooperativa')">
+        <div class="opt-title">Cooperativa</div><div class="opt-desc">Quiere pagar pero no tiene cómo</div>
+      </div>
+    </div>
+
+    <p class="slbl">Datos de la cuenta</p>
+    <div class="field-row">
+      <div class="field"><label>Nombre representante</label><input id="c-nom" value="María López"></div>
+      <div class="field"><label>País</label>
+        <select id="c-pais">
+          <option>Guatemala</option><option>El Salvador</option><option>Honduras</option>
+          <option>Nicaragua</option><option>Panamá</option><option>Rep. Dominicana</option>
+        </select>
+      </div>
+      <div class="field"><label>Saldo en mora (Q)</label><input id="c-sal" type="number" value="2450"></div>
+      <div class="field"><label>Días vencido</label><input id="c-dia" type="number" value="18"></div>
+    </div>
+
+    <p class="slbl">Modo de llamada</p>
+    <div class="opt-row" id="cg-mode">
+      <div class="opt sel" onclick="pick('cg-mode',this,'voice')">
+        <div class="opt-title">🎤 Voz + texto</div>
+        <div class="opt-desc">La representante habla. Tú hablas o escribes.</div>
+      </div>
+      <div class="opt" onclick="pick('cg-mode',this,'text')">
+        <div class="opt-title">⌨️ Solo texto</div>
+        <div class="opt-desc">Sin audio.</div>
+      </div>
+    </div>
+    <button class="btn-main" onclick="startCall('c')">📞 Iniciar llamada de cobro</button>
+  </div>
+
+  <!-- CALL COBROS -->
+  <div id="c-call" class="screen">
+    <div class="call-top">
+      <div class="av-wrap"><div class="av-ring" id="c-av-ring"></div><div class="av-circle" id="c-av-init">ML</div></div>
+      <div class="call-name" id="c-av-name">María López</div>
+      <div class="call-meta" id="c-av-meta"></div>
+      <div class="call-timer" id="c-timer">0:00</div>
+      <div class="call-status" id="c-status">Conectando...</div>
+      <div class="call-badges" id="c-badges"></div>
+    </div>
+    <div class="voice-on" id="c-voice-badge"><span class="vdot"></span><span>Voz activa — la representante habla en voz alta</span></div>
+    <div class="transcript-wrap">
+      <div class="msgs" id="c-msgs"></div>
+      <div class="input-bar">
+        <button class="btn-mic" id="c-mic" onclick="toggleMic('c')" title="Hablar">🎤</button>
+        <input id="c-txt" type="text" placeholder="Escribe tu respuesta..." onkeydown="if(event.key==='Enter')sendTxt('c')">
+        <button class="btn-go" onclick="sendTxt('c')">➤</button>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" onclick="useChip('c',this)">Entiendo su situación...</span>
+      <span class="chip" onclick="useChip('c',this)">¿Cuándo podría hacer un abono?</span>
+      <span class="chip" onclick="useChip('c',this)">Podemos hacer un acuerdo de pago</span>
+      <span class="chip" onclick="useChip('c',this)">Este saldo ya genera intereses</span>
+      <span class="chip" onclick="useChip('c',this)">¿Qué le impide pagar hoy?</span>
+      <span class="chip" onclick="useChip('c',this)">Avon puede absorber parte del saldo</span>
+      <span class="chip" onclick="useChip('c',this)">Esto puede pasar a acciones legales</span>
+    </div>
+    <button class="btn-end" onclick="endCall('c')">📵 Terminar y evaluar</button>
+  </div>
+
+  <!-- EVAL COBROS -->
+  <div id="c-eval" class="screen">
+    <div class="ecard" style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <div class="score-ring"><div id="c-e-sc" style="font-size:21px;font-weight:800;color:var(--avon)">—</div><div style="font-size:10px;color:var(--muted);font-weight:600">PTS</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:3px">Resultado</div><div id="c-e-out" style="font-size:14px;font-weight:700;color:var(--text)">Evaluando...</div></div>
+    </div>
+    <div class="mets">
+      <div class="met"><div class="v" id="c-e-tu">0</div><div class="l">Turnos</div></div>
+      <div class="met"><div class="v" id="c-e-du">—</div><div class="l">Duración</div></div>
+      <div class="met"><div class="v" id="c-e-ca" style="font-size:11px;font-weight:700">—</div><div class="l">Categoría</div></div>
+    </div>
+    <div class="ecard"><div class="ecard-title">📊 Criterios de evaluación</div><div id="c-e-crit"></div></div>
+    <div class="ecard"><div class="ecard-title">💬 Retroalimentación del supervisor</div><div id="c-e-feed" style="font-size:13px;line-height:1.65;color:var(--muted)">Cargando...</div></div>
+    <button class="btn-main" onclick="restart('c')">🔄 Nueva simulación</button>
+  </div>
+</div><!-- /mod-cobros -->
+
+
+<!-- ══════════════════════════════════════════
+     MÓDULO 2: GERENTES DE ZONA
+══════════════════════════════════════════ -->
+<div id="mod-gz" class="module">
+
+  <!-- SETUP GZ -->
+  <div id="gz-setup" class="screen active">
+
+    <p class="slbl">Tipo de reunión / rendición</p>
+    <div class="opt-grid" id="gg-tipo">
+      <div class="opt sel" onclick="pick('gg-tipo',this,'semanal')">
+        <div class="opt-title">📋 Rendición semanal</div>
+        <div class="opt-desc">Seguimiento de cartera y compromisos de la semana</div>
+      </div>
+      <div class="opt" onclick="pick('gg-tipo',this,'campaña')">
+        <div class="opt-title">📊 Cierre de campaña</div>
+        <div class="opt-desc">Resultados finales al cerrar la campaña</div>
+      </div>
+      <div class="opt" onclick="pick('gg-tipo',this,'mora_alta')">
+        <div class="opt-title">🚨 Cartera en mora alta</div>
+        <div class="opt-desc">La zona tiene indicadores críticos de CXC</div>
+      </div>
+      <div class="opt" onclick="pick('gg-tipo',this,'convenios')">
+        <div class="opt-title">🤝 Revisión de convenios</div>
+        <div class="opt-desc">Seguimiento a acuerdos de pago activos</div>
+      </div>
+    </div>
+
+    <p class="slbl">Perfil de la gerente de zona</p>
+    <div class="opt-row" id="gg-perf">
+      <div class="opt sel" onclick="pick('gg-perf',this,'defensiva')">
+        <div class="opt-title">Defensiva</div>
+        <div class="opt-desc">Justifica todo, los números son "por factores externos"</div>
+      </div>
+      <div class="opt" onclick="pick('gg-perf',this,'comprometida')">
+        <div class="opt-title">Comprometida</div>
+        <div class="opt-desc">Acepta los resultados y busca soluciones</div>
+      </div>
+      <div class="opt" onclick="pick('gg-perf',this,'evasiva')">
+        <div class="opt-title">Evasiva</div>
+        <div class="opt-desc">Desvía el tema, no da fechas ni compromisos concretos</div>
+      </div>
+    </div>
+
+    <p class="slbl">Datos de la zona</p>
+    <div class="field-row">
+      <div class="field"><label>Nombre de la gerente</label><input id="gz-nom" value="Claudia Ramírez"></div>
+      <div class="field"><label>País</label>
+        <select id="gz-pais">
+          <option>Guatemala</option><option>El Salvador</option><option>Honduras</option>
+          <option>Nicaragua</option><option>Panamá</option><option>Rep. Dominicana</option>
+        </select>
+      </div>
+      <div class="field"><label>Zona / Sector</label><input id="gz-zona" value="Zona Sur GT-03"></div>
+      <div class="field"><label>CXC total de la zona (Q)</label><input id="gz-cxc" type="number" value="85000"></div>
+      <div class="field"><label>% mora (Early+Late)</label><input id="gz-mora" type="number" value="34"></div>
+      <div class="field"><label>Meta de recuperación (%)</label><input id="gz-meta" type="number" value="80"></div>
+    </div>
+
+    <p class="slbl">Número de representantes con mora</p>
+    <div class="field-row">
+      <div class="field"><label>En Early Stage</label><input id="gz-early" type="number" value="12"></div>
+      <div class="field"><label>En Late Stage</label><input id="gz-late" type="number" value="5"></div>
+      <div class="field"><label>Con promesa activa</label><input id="gz-pp" type="number" value="8"></div>
+      <div class="field"><label>Promesas incumplidas</label><input id="gz-pi" type="number" value="3"></div>
+    </div>
+
+    <p class="slbl">Tu rol en esta reunión</p>
+    <div class="opt-row" id="gg-rol">
+      <div class="opt sel" onclick="pick('gg-rol',this,'supervisor')">
+        <div class="opt-title">Supervisor de Cobros</div>
+        <div class="opt-desc">Revisas indicadores y exiges compromisos</div>
+      </div>
+      <div class="opt" onclick="pick('gg-rol',this,'gestor')">
+        <div class="opt-title">Gestor asignado</div>
+        <div class="opt-desc">Reportas a la gerente el estado de sus representantes</div>
+      </div>
+    </div>
+
+    <p class="slbl">Modo</p>
+    <div class="opt-row" id="gg-mode">
+      <div class="opt sel" onclick="pick('gg-mode',this,'voice')">
+        <div class="opt-title">🎤 Voz + texto</div><div class="opt-desc">La gerente habla en voz alta</div>
+      </div>
+      <div class="opt" onclick="pick('gg-mode',this,'text')">
+        <div class="opt-title">⌨️ Solo texto</div><div class="opt-desc">Sin audio</div>
+      </div>
+    </div>
+
+    <button class="btn-main" onclick="startCall('gz')">👩‍💼 Iniciar reunión con gerente</button>
+  </div>
+
+  <!-- CALL GZ -->
+  <div id="gz-call" class="screen">
+    <div class="call-top">
+      <div class="av-wrap"><div class="av-ring" id="gz-av-ring"></div><div class="av-circle" id="gz-av-init" style="color:var(--gold);border-color:var(--gold);background:linear-gradient(135deg,rgba(245,166,35,.2),rgba(10,36,114,.2))">CR</div></div>
+      <div class="call-name" id="gz-av-name">Claudia Ramírez</div>
+      <div class="call-meta" id="gz-av-meta"></div>
+      <div class="call-timer" id="gz-timer">0:00</div>
+      <div class="call-status" id="gz-status">Conectando...</div>
+      <div class="call-badges" id="gz-badges"></div>
+    </div>
+
+    <!-- KPIs contextuales -->
+    <div class="gz-kpi-grid" id="gz-kpi-panel">
+      <div class="gz-kpi"><div class="kv" id="kpi-cxc">Q85,000</div><div class="kl">CXC Total zona</div></div>
+      <div class="gz-kpi"><div class="kv" id="kpi-mora" style="color:var(--red)">34%</div><div class="kl">% en mora</div></div>
+      <div class="gz-kpi"><div class="kv" id="kpi-pp" style="color:var(--amber)">8</div><div class="kl">Promesas activas</div></div>
+      <div class="gz-kpi"><div class="kv" id="kpi-pi" style="color:var(--red)">3</div><div class="kl">Promesas incumplidas</div></div>
+    </div>
+
+    <div class="voice-on" id="gz-voice-badge"><span class="vdot"></span><span>Voz activa — la gerente habla en voz alta</span></div>
+    <div class="transcript-wrap">
+      <div class="msgs" id="gz-msgs"></div>
+      <div class="input-bar">
+        <button class="btn-mic" id="gz-mic" onclick="toggleMic('gz')" title="Hablar">🎤</button>
+        <input id="gz-txt" type="text" placeholder="Escribe tu respuesta..." onkeydown="if(event.key==='Enter')sendTxt('gz')">
+        <button class="btn-go" onclick="sendTxt('gz')">➤</button>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" onclick="useChip('gz',this)">¿Cuál es el plan de acción para estas representantes?</span>
+      <span class="chip" onclick="useChip('gz',this)">Necesito fechas concretas de recuperación</span>
+      <span class="chip" onclick="useChip('gz',this)">¿Por qué no se cumplió la meta?</span>
+      <span class="chip" onclick="useChip('gz',this)">Las promesas incumplidas necesitan seguimiento inmediato</span>
+      <span class="chip" onclick="useChip('gz',this)">¿Cuántas representantes están en riesgo de Late Stage?</span>
+      <span class="chip" onclick="useChip('gz',this)">Necesito un compromiso por escrito esta semana</span>
+    </div>
+    <button class="btn-end" onclick="endCall('gz')">📵 Terminar reunión y evaluar</button>
+  </div>
+
+  <!-- EVAL GZ -->
+  <div id="gz-eval" class="screen">
+    <div class="ecard" style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <div class="score-ring" style="border-color:var(--gold)"><div id="gz-e-sc" style="font-size:21px;font-weight:800;color:var(--gold)">—</div><div style="font-size:10px;color:var(--muted);font-weight:600">PTS</div></div>
+      <div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:3px">Resultado de la reunión</div><div id="gz-e-out" style="font-size:14px;font-weight:700;color:var(--text)">Evaluando...</div></div>
+    </div>
+    <div class="mets">
+      <div class="met"><div class="v" id="gz-e-tu">0</div><div class="l">Turnos</div></div>
+      <div class="met"><div class="v" id="gz-e-du">—</div><div class="l">Duración</div></div>
+      <div class="met"><div class="v" id="gz-e-ca" style="font-size:11px;font-weight:700">—</div><div class="l">Categoría</div></div>
+    </div>
+    <div class="ecard"><div class="ecard-title">📊 Criterios de evaluación</div><div id="gz-e-crit"></div></div>
+    <div class="ecard"><div class="ecard-title">💬 Retroalimentación</div><div id="gz-e-feed" style="font-size:13px;line-height:1.65;color:var(--muted)">Cargando...</div></div>
+    <button class="btn-main" onclick="restart('gz')">🔄 Nueva simulación</button>
+  </div>
+</div><!-- /mod-gz -->
+
+</div><!-- /container -->
+
+<script>
+/* ═══════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════ */
+const ST = {
+  c:  { sc:'early', rep:'evasiva', mode:'voice', nom:'María López', pais:'Guatemala', sal:2450, dia:18, hist:[], turns:0, t0:null, tInt:null, finalDur:'0:00', busy:false, speaking:false, recog:null, recognizing:false },
+  gz: { tipo:'semanal', perf:'defensiva', rol:'supervisor', mode:'voice', nom:'Claudia Ramírez', pais:'Guatemala', zona:'Zona Sur GT-03', cxc:85000, mora:34, meta:80, early:12, late:5, pp:8, pi:3, hist:[], turns:0, t0:null, tInt:null, finalDur:'0:00', busy:false, speaking:false, recog:null, recognizing:false }
+};
+
+let espVoice = null;
+let voicesReady = false;
+
+/* ── Voces garantizadas ── */
+function loadVoices(){
+  return new Promise(res=>{
+    const v=speechSynthesis.getVoices();
+    if(v.length>0){pickVoice(v);res();return;}
+    let done=false;
+    speechSynthesis.onvoiceschanged=()=>{
+      if(done)return;done=true;pickVoice(speechSynthesis.getVoices());res();
+    };
+    setTimeout(()=>{if(!done){done=true;pickVoice(speechSynthesis.getVoices());res();}},3000);
+  });
+}
+function pickVoice(voices){
+  espVoice = voices.find(v=>v.lang==='es-MX'&&/paulina|female/i.test(v.name))
+    ||voices.find(v=>v.lang==='es-MX')
+    ||voices.find(v=>v.lang==='es-US')
+    ||voices.find(v=>v.lang==='es-ES')
+    ||voices.find(v=>v.lang.startsWith('es'))
+    ||voices[0];
+  voicesReady=true;
+}
+loadVoices();
+
+/* ── UI helpers ── */
+function pick(gid,el,val){
+  document.getElementById(gid).querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  const map={'cg-sc':'sc','cg-rep':'rep','cg-mode':'mode','gg-tipo':'tipo','gg-perf':'perf','gg-rol':'rol','gg-mode':'mode'};
+  const pfx=gid.startsWith('cg')?'c':'gz';
+  ST[pfx][map[gid]]=val;
+}
+function showScreen(pfx,id){
+  document.querySelectorAll('#mod-'+pfx+' .screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(pfx+'-'+id).classList.add('active');
+}
+function switchMod(mod){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.mod-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mod-'+mod).classList.add('active');
+  document.getElementById('tab-'+mod).classList.add('active');
+}
+function inits(n){return n.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+function setStatus(pfx,t){document.getElementById(pfx+'-status').textContent=t;}
+
+/* ═══════════════════════════════════════
+   INICIAR LLAMADA/REUNIÓN
+═══════════════════════════════════════ */
+async function startCall(pfx){
+  if(pfx==='c'){
+    const s=ST.c;
+    s.nom=document.getElementById('c-nom').value.trim()||'María López';
+    s.pais=document.getElementById('c-pais').value;
+    s.sal=parseFloat(document.getElementById('c-sal').value)||2450;
+    s.dia=parseInt(document.getElementById('c-dia').value)||18;
+    s.hist=[];s.turns=0;s.busy=false;s.speaking=false;s.recognizing=false;
+
+    document.getElementById('c-av-init').textContent=inits(s.nom);
+    document.getElementById('c-av-name').textContent=s.nom;
+    document.getElementById('c-av-meta').textContent=s.pais+' · Q'+s.sal.toLocaleString()+' · '+s.dia+' días vencido';
+    document.getElementById('c-msgs').innerHTML='';
+    const badges={early:'<span class="cbadge b-warn">⏰ Early Stage</span>',late:'<span class="cbadge b-danger">⚠️ Late Stage</span>',promise:'<span class="cbadge b-danger">📅 Promesa Rota</span>',prejuridica:'<span class="cbadge b-danger">⚖️ Prejurídica</span>'};
+    document.getElementById('c-badges').innerHTML=badges[s.sc]||'';
+    if(s.mode==='voice'){document.getElementById('c-voice-badge').classList.add('show');setupRecog('c');}
+    else document.getElementById('c-voice-badge').classList.remove('show');
+    showScreen('c','call');
+
+  } else {
+    const s=ST.gz;
+    s.nom=document.getElementById('gz-nom').value.trim()||'Claudia Ramírez';
+    s.pais=document.getElementById('gz-pais').value;
+    s.zona=document.getElementById('gz-zona').value.trim()||'Zona Sur GT-03';
+    s.cxc=parseFloat(document.getElementById('gz-cxc').value)||85000;
+    s.mora=parseInt(document.getElementById('gz-mora').value)||34;
+    s.meta=parseInt(document.getElementById('gz-meta').value)||80;
+    s.early=parseInt(document.getElementById('gz-early').value)||12;
+    s.late=parseInt(document.getElementById('gz-late').value)||5;
+    s.pp=parseInt(document.getElementById('gz-pp').value)||8;
+    s.pi=parseInt(document.getElementById('gz-pi').value)||3;
+    s.hist=[];s.turns=0;s.busy=false;s.speaking=false;s.recognizing=false;
+
+    document.getElementById('gz-av-init').textContent=inits(s.nom);
+    document.getElementById('gz-av-name').textContent=s.nom;
+    document.getElementById('gz-av-meta').textContent=s.zona+' · '+s.pais;
+    document.getElementById('gz-msgs').innerHTML='';
+    const tipoBadge={semanal:'<span class="cbadge b-blue">📋 Rendición Semanal</span>',campaña:'<span class="cbadge b-ok">📊 Cierre Campaña</span>',mora_alta:'<span class="cbadge b-danger">🚨 Mora Alta</span>',convenios:'<span class="cbadge b-warn">🤝 Convenios</span>'};
+    document.getElementById('gz-badges').innerHTML=tipoBadge[s.tipo]||'';
+    document.getElementById('kpi-cxc').textContent='Q'+s.cxc.toLocaleString();
+    document.getElementById('kpi-mora').textContent=s.mora+'%';
+    document.getElementById('kpi-pp').textContent=s.pp;
+    document.getElementById('kpi-pi').textContent=s.pi;
+    if(s.mode==='voice'){document.getElementById('gz-voice-badge').classList.add('show');setupRecog('gz');}
+    else document.getElementById('gz-voice-badge').classList.remove('show');
+    showScreen('gz','call');
+  }
+
+  const s=ST[pfx];
+  s.t0=Date.now();
+  s.tInt=setInterval(()=>{
+    const sec=Math.floor((Date.now()-s.t0)/1000);
+    document.getElementById(pfx+'-timer').textContent=Math.floor(sec/60)+':'+(sec%60<10?'0':'')+sec%60;
+  },1000);
+
+  if(!voicesReady) await loadVoices();
+  setStatus(pfx,'📲 Conectando...');
+  const openMsg = pfx==='c'
+    ? '[INICIO: el gestor llama a la representante, el teléfono suena y ella contesta]'
+    : '[INICIO: comienza la reunión/llamada de rendición de cuentas, el supervisor abre la conversación]';
+  setTimeout(()=>callAI(pfx,openMsg),700);
+}
+
+/* ═══════════════════════════════════════
+   SYSTEM PROMPTS
+═══════════════════════════════════════ */
+function sysPromptCobros(){
+  const s=ST.c;
+  const rT={
+    evasiva:`Eres ${s.nom}, representante de ventas Avon en ${s.pais}. Eres evasiva pero cordial. Siempre tienes una excusa creíble: no tienes dinero, estás esperando que tus clientas te paguen, hubo un gasto inesperado. Solo cedes si el gestor es genuinamente empático y ofrece una solución concreta.`,
+    agresiva:`Eres ${s.nom}, representante de ventas Avon en ${s.pais}. Te molesta que te llamen a cobrar. Te sientes acosada, cuestionas los montos y amenazas con dejar Avon. Solo cedes si el gestor mantiene la calma y ofrece algo concreto.`,
+    cooperativa:`Eres ${s.nom}, representante de ventas Avon en ${s.pais}. Tienes buena voluntad pero aprietos económicos. Escuchas, pero necesitas opciones claras de pago para comprometerte.`
+  };
+  const scT={
+    early:'Primera o segunda llamada. Saldo recién vencido.',
+    late:'Varios intentos previos. Historial de evasión.',
+    promise:'La semana pasada prometiste pagar y no lo hiciste.',
+    prejuridica:'Último aviso antes de acción legal. Es muy serio.'
+  };
+  return `${rT[s.rep]}\nSaldo en mora: Q${s.sal.toLocaleString()}. Días vencido: ${s.dia}.\n${scT[s.sc]}\nREGLAS: Responde SOLO como la representante. Lenguaje coloquial de ${s.pais}. Máximo 2 oraciones cortas. Reacciona al tono del gestor. No salgas del personaje.`;
+}
+
+function sysPromptGZ(){
+  const s=ST.gz;
+  const perf={
+    defensiva:`Eres ${s.nom}, gerente de zona Avon en ${s.pais} a cargo de ${s.zona}. Eres defensiva ante los indicadores. Siempre tienes una justificación externa: "es que la campaña estuvo difícil", "las representantes tienen muchos problemas personales", "el mercado está muy malo". Reconoces los problemas pero minimizas tu responsabilidad. Solo das compromisos concretos si el supervisor insiste mucho y demuestra claramente el problema con datos.`,
+    comprometida:`Eres ${s.nom}, gerente de zona Avon en ${s.pais} a cargo de ${s.zona}. Eres profesional y comprometida. Reconoces los números, asumes la responsabilidad de tu zona y proactivamente propones planes de acción. Haces preguntas al supervisor para entender mejor qué herramientas tienes disponibles.`,
+    evasiva:`Eres ${s.nom}, gerente de zona Avon en ${s.pais} a cargo de ${s.zona}. Eres evasiva y desvías constantemente la conversación. Hablas mucho pero no dices nada concreto. Cambias de tema, menciones logros de otras áreas, o prometes "ver" las cosas sin comprometerte con fechas ni números. Solo ante insistencia directa y específica das alguna respuesta concreta.`
+  };
+  const tipoCtx={
+    semanal:`Es una reunión semanal de seguimiento. Se revisarán los compromisos de la semana anterior y se establecerán nuevos objetivos para la próxima semana.`,
+    campaña:`Es el cierre de campaña. Se evalúan los resultados finales de recuperación de cartera vs la meta establecida.`,
+    mora_alta:`La zona tiene indicadores críticos. El porcentaje de mora está por encima del umbral aceptable y hay riesgo de impacto en el negocio.`,
+    convenios:`Se revisan los convenios/acuerdos de pago activos: cuántos se cumplieron, cuántos están en riesgo, qué acción se tomará.`
+  };
+  const rolCtx = s.rol==='supervisor'
+    ? 'El supervisor de cobros está haciendo la reunión. Tiene autoridad para exigir compromisos y escalar si no hay resultados.'
+    : 'El gestor asignado está reportando el estado de las representantes de esta zona a la gerente.';
+
+  return `${perf[s.perf]}
+
+DATOS DE TU ZONA:
+- CXC total: Q${s.cxc.toLocaleString()}
+- % en mora: ${s.mora}% (meta: reducir a ${100-s.meta}%)
+- Representantes Early Stage: ${s.early}
+- Representantes Late Stage: ${s.late}
+- Con promesa de pago activa: ${s.pp}
+- Promesas incumplidas esta semana: ${s.pi}
+
+CONTEXTO DE LA REUNIÓN: ${tipoCtx[s.tipo]}
+ROL DE TU INTERLOCUTOR: ${rolCtx}
+
+REGLAS: Responde SOLO como la gerente ${s.nom}. Usa lenguaje profesional pero accesible, como lo haría una gerente de ventas en ${s.pais}. Máximo 3 oraciones por respuesta. Reacciona al tono y argumentos de tu interlocutor. No salgas del personaje. Puedes hacer preguntas de vuelta.`;
+}
+
+/* ═══════════════════════════════════════
+   API
+═══════════════════════════════════════ */
+async function callAI(pfx,userContent){
+  const s=ST[pfx];
+  s.busy=true;
+  setStatus(pfx,'...');
+  addTyping(pfx);
+  const messages=[...s.hist,{role:'user',content:userContent}];
+  const system=pfx==='c'?sysPromptCobros():sysPromptGZ();
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:pfx==='c'?130:200,system,messages})
+    });
+    const d=await r.json();
+    const reply=d.content?.[0]?.text||'¿Me puede repetir?';
+    removeTyping(pfx);
+    s.hist.push({role:'user',content:userContent},{role:'assistant',content:reply});
+    const avClass=pfx==='gz'?'gz':'r';
+    addMsg(pfx,avClass,reply,pfx==='c'?inits(ST.c.nom):inits(ST.gz.nom));
+    s.busy=false;
+    if(s.mode==='voice') speakText(pfx,reply);
+    else setStatus(pfx,'Tu turno — escribe tu respuesta');
+  }catch(e){
+    removeTyping(pfx);s.busy=false;
+    setStatus(pfx,'❌ Error de conexión');
+  }
+}
+
+/* ═══════════════════════════════════════
+   TTS
+═══════════════════════════════════════ */
+function speakText(pfx,text){
+  if(!window.speechSynthesis){setStatus(pfx,'(Sin voz — ver texto arriba)');return;}
+  speechSynthesis.cancel();
+  const s=ST[pfx];s.speaking=true;
+  document.getElementById(pfx+'-av-ring').classList.add('pulse');
+  setStatus(pfx,'🔊 Hablando...');
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='es-MX';utt.rate=0.91;utt.pitch=pfx==='gz'?1.0:1.1;utt.volume=1;
+  if(espVoice) utt.voice=espVoice;
+  const ka=setInterval(()=>{if(!speechSynthesis.speaking){clearInterval(ka);return;}speechSynthesis.pause();speechSynthesis.resume();},8000);
+  utt.onend=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,s.mode==='voice'?'🎤 Tu turno — presiona el micrófono':'Tu turno — escribe');};
+  utt.onerror=()=>{clearInterval(ka);s.speaking=false;document.getElementById(pfx+'-av-ring').classList.remove('pulse');setStatus(pfx,'(Respuesta en pantalla)');};
+  speechSynthesis.speak(utt);
+}
+
+/* ═══════════════════════════════════════
+   STT
+═══════════════════════════════════════ */
+function setupRecog(pfx){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  const s=ST[pfx];
+  s.recog=new SR();
+  s.recog.lang='es-GT';s.recog.continuous=false;s.recog.interimResults=false;
+  s.recog.onresult=(e)=>{const txt=e.results[0][0].transcript;stopMic(pfx);if(txt.trim())processInput(pfx,txt);};
+  s.recog.onerror=()=>{stopMic(pfx);setStatus(pfx,'No se captó voz — escribe tu respuesta');};
+  s.recog.onend=()=>{if(s.recognizing)stopMic(pfx);};
+}
+function toggleMic(pfx){
+  const s=ST[pfx];
+  if(s.busy||s.speaking){setStatus(pfx,'⏳ Espera que termine de hablar');return;}
+  if(s.recognizing){if(s.recog)s.recog.stop();stopMic(pfx);return;}
+  if(!s.recog){setStatus(pfx,'Micrófono no disponible — escribe');return;}
+  s.recog.start();s.recognizing=true;
+  document.getElementById(pfx+'-mic').classList.add('rec');
+  document.getElementById(pfx+'-mic').textContent='⏹';
+  setStatus(pfx,'🎙️ Escuchando...');
+}
+function stopMic(pfx){
+  ST[pfx].recognizing=false;
+  const btn=document.getElementById(pfx+'-mic');
+  btn.classList.remove('rec');btn.textContent='🎤';
+}
+
+/* ═══════════════════════════════════════
+   INPUT
+═══════════════════════════════════════ */
+function sendTxt(pfx){
+  const inp=document.getElementById(pfx+'-txt');
+  const v=inp.value.trim();
+  if(!v||ST[pfx].busy||ST[pfx].speaking)return;
+  inp.value='';processInput(pfx,v);
+}
+function useChip(pfx,el){document.getElementById(pfx+'-txt').value=el.textContent;document.getElementById(pfx+'-txt').focus();}
+function processInput(pfx,txt){
+  if(ST[pfx].busy)return;
+  addMsg(pfx,'g',txt,'YO');
+  ST[pfx].turns++;
+  callAI(pfx,txt);
+}
+
+/* ═══════════════════════════════════════
+   MENSAJES
+═══════════════════════════════════════ */
+function addMsg(pfx,who,text,av){
+  const c=document.getElementById(pfx+'-msgs');
+  const d=document.createElement('div');
+  d.className='msg '+(who==='g'?'g':who);
+  const lbl=who==='g'?(ST[pfx].rol==='supervisor'?'Supervisor':'Gestor'):(pfx==='c'?ST.c.nom:ST.gz.nom);
+  d.innerHTML=`<div class="mav ${who}">${av}</div><div><div class="mbub">${text}</div><div class="mlbl">${lbl}</div></div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function addTyping(pfx){
+  const c=document.getElementById(pfx+'-msgs');
+  const d=document.createElement('div');d.className='msg '+(pfx==='gz'?'gz':'r');d.id=pfx+'-typ';
+  const av=pfx==='c'?inits(ST.c.nom):inits(ST.gz.nom);
+  const cls=pfx==='gz'?'gz':'r';
+  d.innerHTML=`<div class="mav ${cls}">${av}</div><div><div class="mbub"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function removeTyping(pfx){const t=document.getElementById(pfx+'-typ');if(t)t.remove();}
+
+/* ═══════════════════════════════════════
+   FIN + EVALUACIÓN
+═══════════════════════════════════════ */
+function endCall(pfx){
+  const s=ST[pfx];
+  clearInterval(s.tInt);
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  if(s.recog)s.recog.stop();
+  const sec=Math.floor((Date.now()-s.t0)/1000);
+  s.finalDur=Math.floor(sec/60)+':'+(sec%60<10?'0':'')+sec%60;
+  document.getElementById(pfx+'-e-tu').textContent=s.turns;
+  document.getElementById(pfx+'-e-du').textContent=s.finalDur;
+  showScreen(pfx,'eval');
+  evaluate(pfx);
+}
+
+async function evaluate(pfx){
+  const s=ST[pfx];
+  const transcript=s.hist.map(m=>(m.role==='user'?'YO':'INTERLOCUTOR')+': '+m.content).join('\n');
+
+  const isCobro=pfx==='c';
+  const context=isCobro
+    ? `Escenario: ${s.sc} | Tipo rep: ${s.rep} | Saldo: Q${s.sal} | Días: ${s.dia}`
+    : `Tipo reunión: ${s.tipo} | Perfil GZ: ${s.perf} | Rol evaluado: ${s.rol} | CXC: Q${s.cxc} | Mora: ${s.mora}% | Meta: ${s.meta}%`;
+
+  const criteriosCobro=[
+    {n:'Apertura de llamada'},{n:'Manejo de objeciones'},{n:'Solución de pago ofrecida'},{n:'Cierre con compromiso'},{n:'Tono y empatía'}
+  ];
+  const criteriosGZ=[
+    {n:'Claridad en los datos presentados'},{n:'Exigencia de compromisos concretos'},{n:'Manejo de justificaciones'},{n:'Establecimiento de fechas y metas'},{n:'Tono profesional y asertivo'}
+  ];
+  const criterios=isCobro?criteriosCobro:criteriosGZ;
+  const catOpts=isCobro
+    ? 'Pago prometido|Acuerdo de pago|Sin compromiso|Llamada cortada'
+    : 'Compromisos concretos establecidos|Compromisos parciales|Sin acuerdo|Reunión interrumpida';
+
+  const sys=`Eres supervisor experto en cobros Avon. Analiza esta ${isCobro?'llamada de cobro':'reunión de rendición de cuentas con gerente de zona'} y responde ÚNICAMENTE con JSON válido, sin texto extra ni markdown.
+
+Formato exacto:
+{"outcome":"texto corto del resultado","score":72,"categoria":"${catOpts}","criterios":[${criterios.map(c=>`{"n":"${c.n}","p":70}`).join(',')}],"feedback":"2-3 oraciones concretas sobre qué hizo bien y qué mejorar."}`;
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,
+        messages:[{role:'user',content:`${context}\n\nTRANSCRIPCIÓN:\n${transcript}`}]})
+    });
+    const d=await r.json();
+    const raw=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
+    const ev=JSON.parse(raw);
+    const scoreEl=document.getElementById(pfx+'-e-sc');
+    scoreEl.textContent=ev.score||'—';
+    document.getElementById(pfx+'-e-out').textContent=ev.outcome||'—';
+    document.getElementById(pfx+'-e-ca').textContent=ev.categoria||'—';
+    const sc=ev.score||0;
+    scoreEl.style.color=sc>=75?'#5DCAA5':sc>=50?'#F5A623':'#F09595';
+    document.getElementById(pfx+'-e-crit').innerHTML=(ev.criterios||[]).map(c=>{
+      const col=c.p>=70?'#1D9E75':c.p>=50?'#BA7517':'#E24B4A';
+      return `<div class="crow"><span style="color:var(--muted);flex:1">${c.n}</span><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div class="bf" style="width:${c.p}%;background:${col}"></div></div><span style="font-size:12px;font-weight:700;min-width:26px;text-align:right;color:var(--text)">${c.p}</span></div></div>`;
+    }).join('');
+    document.getElementById(pfx+'-e-feed').textContent=ev.feedback||'—';
+  }catch(e){
+    document.getElementById(pfx+'-e-feed').textContent='No se pudo generar la evaluación.';
+  }
+}
+
+function restart(pfx){
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  showScreen(pfx,'setup');
+}
+</script>
+</body>
+</html>
